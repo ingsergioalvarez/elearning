@@ -1,0 +1,33 @@
+# Secretos y datos privados de conexión
+CLAUDE.local.md
+.env
+*.env
+!infra/.env.example
+
+# Material fuente de cursos (videos, SCORM, PDF): no va a git
+contenido/*
+!contenido/README.md
+
+# Respaldos y volcados
+backups/
+*.sql
+*.sql.gz
+*.tar
+*.tgz
+
+# Datos locales de Frappe / Docker
+sites/
+logs/
+*.log
+
+# Python / Node
+__pycache__/
+*.pyc
+node_modules/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Clon de frappe_docker y apps.json generados al construir la imagen
+build/

@@ -1,0 +1,151 @@
+# Comunicalo Learning (Frappe v16 + Learning + payments).
+# Basado en compose.yaml + overrides mariadb/redis/noproxy de frappe_docker v4.2.0, en un solo archivo.
+# Siempre: docker compose -p learning ... (el nombre ya va fijo abajo). Nunca `down -v`.
+# Variables en infra/.env (plantilla: infra/.env.example).
+
+name: learning
+
+x-logs: &logs
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+x-imagen: &imagen
+  image: ${IMAGEN_LEARNING:?falta IMAGEN_LEARNING en .env}
+  pull_policy: never
+  restart: unless-stopped
+  logging: *logs
+
+x-backend: &backend
+  <<: *imagen
+  volumes:
+    - sites:/home/frappe/frappe-bench/sites
+  depends_on:
+    configurator:
+      condition: service_completed_successfully
+
+services:
+  # Escribe common_site_config.json (base de datos y Redis) y termina.
+  configurator:
+    <<: *backend
+    restart: on-failure
+    entrypoint: ["bash", "-c"]
+    command:
+      - >
+        ls -1 apps > sites/apps.txt;
+        bench set-config -g db_host db;
+        bench set-config -gp db_port 3306;
+        bench set-config -g redis_cache redis://redis-cache:6379;
+        bench set-config -g redis_queue redis://redis-queue:6379;
+        bench set-config -g redis_socketio redis://redis-queue:6379;
+        bench set-config -gp socketio_port 9000;
+        bench set-config -g chromium_path /usr/lib/chromium/chromium-headless-shell;
+    depends_on:
+      db:
+        condition: service_healthy
+      redis-cache:
+        condition: service_started
+      redis-queue:
+        condition: service_started
+
+  backend:
+    <<: *backend
+    environment:
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-2}
+      GUNICORN_THREADS: ${GUNICORN_THREADS:-4}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
+    mem_limit: ${LIMITE_MEMORIA_BACKEND:-1g}
+
+  frontend:
+    <<: *imagen
+    command: ["nginx-entrypoint.sh"]
+    environment:
+      BACKEND: backend:8000
+      SOCKETIO: websocket:9000
+      NGINX_LISTEN_PORT: "8080"
+      FRAPPE_SITE_NAME_HEADER: ${SITE_NAME:?falta SITE_NAME en .env}
+      UPSTREAM_REAL_IP_ADDRESS: ${UPSTREAM_REAL_IP_ADDRESS:-127.0.0.1}
+      UPSTREAM_REAL_IP_HEADER: X-Forwarded-For
+      UPSTREAM_REAL_IP_RECURSIVE: "off"
+      PROXY_READ_TIMEOUT: "120"
+      CLIENT_MAX_BODY_SIZE: ${CLIENT_MAX_BODY_SIZE:-200m}
+    ports:
+      # Solo dentro del servidor. Se publica hacia fuera con nginx-proxy-manager (Fase 1).
+      - "127.0.0.1:${HTTP_PORT:-8090}:8080"
+    volumes:
+      - sites:/home/frappe/frappe-bench/sites
+    mem_limit: 256m
+    networks:
+      - default
+      - proxy_net   # red de nginx-proxy-manager: reenvía a learning-frontend-1:8080
+    depends_on:
+      - backend
+      - websocket
+
+  websocket:
+    <<: *backend
+    command: ["node", "/home/frappe/frappe-bench/apps/frappe/socketio.js"]
+    mem_limit: 256m
+
+  queue-short:
+    <<: *backend
+    command: bench worker --queue short,default
+    mem_limit: ${LIMITE_MEMORIA_WORKER:-512m}
+
+  queue-long:
+    <<: *backend
+    command: bench worker --queue long,default,short
+    mem_limit: ${LIMITE_MEMORIA_WORKER:-512m}
+
+  scheduler:
+    <<: *backend
+    command: bench schedule
+    mem_limit: 256m
+
+  # MariaDB propia de Learning. NO es la del ERP. Sin puertos hacia fuera.
+  db:
+    image: mariadb:${MARIADB_VERSION:?falta MARIADB_VERSION en .env}
+    restart: unless-stopped
+    logging: *logs
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --skip-character-set-client-handshake
+      - --innodb-snapshot-isolation=OFF
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?falta DB_ROOT_PASSWORD en .env}
+      MARIADB_AUTO_UPGRADE: "1"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      start_period: 5s
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    mem_limit: ${LIMITE_MEMORIA_DB:-768m}
+    volumes:
+      - db-data:/var/lib/mysql
+
+  redis-cache:
+    image: redis:${REDIS_VERSION:?falta REDIS_VERSION en .env}
+    restart: unless-stopped
+    logging: *logs
+    mem_limit: 256m
+
+  redis-queue:
+    image: redis:${REDIS_VERSION:?falta REDIS_VERSION en .env}
+    restart: unless-stopped
+    logging: *logs
+    mem_limit: 256m
+    volumes:
+      - redis-queue-data:/data
+
+volumes:
+  sites:
+  db-data:
+  redis-queue-data:
+
+networks:
+  # Red ya existente de nginx-proxy-manager en A. Solo se conecta el frontend; no se crea ni se modifica.
+  proxy_net:
+    external: true
