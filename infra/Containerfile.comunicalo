@@ -1,0 +1,13 @@
+# syntax=docker/dockerfile:1
+# Agrega las apps propias (apps/) sobre la imagen base de Frappe + lms + payments.
+# Contexto de construcción: apps/comunicalo_auth. Lo usa scripts/construir_imagen.sh.
+ARG IMAGEN_BASE
+FROM ${IMAGEN_BASE}
+
+USER frappe
+WORKDIR /home/frappe/frappe-bench
+
+COPY --chown=frappe:0 . /home/frappe/frappe-bench/apps/comunicalo_auth
+
+RUN env/bin/pip install --no-cache-dir --no-deps -e apps/comunicalo_auth \
+  && chmod -R g=u apps/comunicalo_auth

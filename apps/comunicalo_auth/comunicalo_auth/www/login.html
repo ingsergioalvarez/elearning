@@ -1,0 +1,105 @@
+{# Reemplaza la página /login de Frappe (las apps instaladas después tienen prioridad). #}
+{% extends "templates/web.html" %}
+
+{% block navbar %}{% endblock %}
+
+{% block head_include %}
+<style>
+	.cl-login { max-width: 400px; margin: 48px auto; padding: 0 16px; font-family: inherit; }
+	.cl-tarjeta { background: #fff; border: 1px solid #d9dee5; border-radius: 10px; padding: 28px 24px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+	.cl-titulo { color: #1f3b73; font-size: 1.4rem; font-weight: 600; margin: 0 0 4px; text-align: center; }
+	.cl-subtitulo { color: #5b6573; font-size: .95rem; margin: 0 0 22px; text-align: center; }
+	.cl-campo { margin-bottom: 16px; }
+	.cl-campo label { display: block; color: #333c48; font-size: .9rem; margin-bottom: 6px; }
+	.cl-campo input { width: 100%; box-sizing: border-box; padding: 10px 12px; font-size: 1rem; border: 1px solid #c3cad4; border-radius: 6px; }
+	.cl-campo input:focus { outline: 2px solid #1f5fbf; border-color: #1f5fbf; }
+	.cl-boton { width: 100%; padding: 11px; font-size: 1rem; font-weight: 600; color: #fff; background: #1f5fbf; border: 0; border-radius: 6px; cursor: pointer; }
+	.cl-boton[disabled] { background: #8aa6d6; cursor: wait; }
+	.cl-error { display: none; color: #9b1c1c; background: #fdecec; border: 1px solid #f5c2c2; border-radius: 6px; padding: 10px 12px; margin-bottom: 16px; font-size: .92rem; }
+	.cl-ayuda { color: #5b6573; font-size: .85rem; margin-top: 18px; text-align: center; }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="cl-login">
+	<div class="cl-tarjeta">
+		<h1 class="cl-titulo">Cursos Grupo Comunicalo</h1>
+		<p class="cl-subtitulo">Entra con tu número de empleado y la contraseña de la intranet.</p>
+		<div class="cl-error" id="cl-error" role="alert"></div>
+		<form id="cl-form" autocomplete="on" novalidate>
+			<div class="cl-campo">
+				<label for="cl-numero">Número de empleado</label>
+				<input id="cl-numero" name="numero_empleado" type="text" autocomplete="username" autocapitalize="characters" required autofocus>
+			</div>
+			<div class="cl-campo">
+				<label for="cl-password">Contraseña</label>
+				<input id="cl-password" name="password" type="password" autocomplete="current-password" required>
+			</div>
+			<button class="cl-boton" id="cl-boton" type="submit">Entrar</button>
+		</form>
+		<p class="cl-ayuda">¿Olvidaste tu contraseña o está bloqueada? Recupérala o desbloquéala desde la intranet.</p>
+	</div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+(function () {
+	var form = document.getElementById("cl-form");
+	var boton = document.getElementById("cl-boton");
+	var caja = document.getElementById("cl-error");
+	var destino = {{ redirect_to | tojson }};
+
+	function mostrarError(texto) {
+		caja.textContent = texto;
+		caja.style.display = "block";
+	}
+
+	form.addEventListener("submit", function (ev) {
+		ev.preventDefault();
+		caja.style.display = "none";
+		var numero = document.getElementById("cl-numero").value;
+		var campoPassword = document.getElementById("cl-password");
+		if (!numero.trim() || !campoPassword.value) {
+			mostrarError("Escribe tu número de empleado y tu contraseña.");
+			return;
+		}
+		boton.disabled = true;
+		boton.textContent = "Validando…";
+		fetch("/api/method/comunicalo_auth.login.entrar", {
+			method: "POST",
+			credentials: "same-origin",
+			headers: { "Content-Type": "application/json", "Accept": "application/json" },
+			body: JSON.stringify({ numero_empleado: numero, password: campoPassword.value, redirect_to: destino })
+		})
+			.then(function (r) {
+				return r.json().catch(function () { return {}; }).then(function (j) { return { estado: r.status, cuerpo: j }; });
+			})
+			.then(function (res) {
+				var m = res.cuerpo && res.cuerpo.message;
+				if (m && m.ok) {
+					window.location.href = m.redirect || "/lms";
+					return;
+				}
+				campoPassword.value = "";
+				if (res.estado === 429) {
+					mostrarError("Demasiados intentos. Espera un minuto y vuelve a intentar.");
+				} else if (m && m.mensaje) {
+					mostrarError(m.mensaje);
+				} else {
+					mostrarError("No se pudo iniciar sesión. Intenta de nuevo más tarde.");
+				}
+			})
+			.catch(function () {
+				mostrarError("No hay conexión con el servidor. Revisa tu internet e intenta de nuevo.");
+			})
+			.finally(function () {
+				boton.disabled = false;
+				boton.textContent = "Entrar";
+			});
+	});
+})();
+</script>
+{% endblock %}
+
+{% block sidebar %}{% endblock %}
