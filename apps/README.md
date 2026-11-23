@@ -17,4 +17,5 @@ Por decidir en la Fase 2, verificando contra la documentación de la versión de
 Requisitos:
 - Nunca registrar la contraseña ni el token del ERP.
 - Timeout corto hacia el ERP (unos 10 s) y mensajes claros para ERP caído o en mantenimiento.
-- Pruebas contra el ERP local.
+- Pruebas: primero unitarias con respuestas simuladas del ERP; después contra producción solo con las
+  condiciones de la decisión 0010. Identidad y roles: decisión 0011.

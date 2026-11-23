@@ -1,6 +1,7 @@
 # 0005 — Login propio en Frappe validando contra el ERP (misma contraseña)
 
-- **Estado:** Aceptada (el usuario pidió login propio con la misma contraseña; el mecanismo es la propuesta aceptada)
+- **Estado:** Aceptada (el usuario pidió login propio con la misma contraseña; el mecanismo es la propuesta aceptada).
+  El punto 4 (identidad del usuario y roles) lo precisa la decisión 0011 (2026-11-23).
 - **Fecha:** 2026-11-19
 
 ## Contexto

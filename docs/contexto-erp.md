@@ -6,8 +6,14 @@ el CHANGELOG.
 
 - **Repositorio del ERP:** `../grupocomunicalo` (Node.js + Express, React, MySQL `erp_db`). Sus reglas:
   `../grupocomunicalo/CLAUDE.md`. Desde aquí solo se **lee**; los cambios se hacen allá (`docs/pendientes-erp.md`).
-- **URL pública de la API del ERP:** _pendiente de confirmar_ (ver preguntas abiertas en el plan).
-  Va en `.env` como `ERP_API_URL`, nunca en código.
+- **URL de la API del ERP (P6, 2026-11-23):** `ERP_API_URL=https://grupocomunicalo.mx`, **sin `/api` al final**;
+  la app agrega `/api/auth/login` y `/api/rh/mi-perfil`. Va en `.env`, nunca en código.
+  - Es el dominio que usan los usuarios. `intranet.grupocomunicalo.mx` llega al mismo backend, pero se usa uno solo.
+  - **Ojo:** `https://grupocomunicalo.mx/intranet` es la página de React, **no** la API (un POST ahí da 405 de nginx).
+  - Verificado el 2026-11-23 con un POST vacío (sin credenciales, no cuenta como intento):
+    `/api/auth/login` → 400 «Número de empleado y contraseña son requeridos»; `/api/rh/mi-perfil` sin token → 401.
+    Probado desde la máquina de desarrollo, desde A y desde dentro de `learning-backend-1` (pasa por Cloudflare;
+    no bloquea al servidor).
 
 ---
 
@@ -70,8 +76,8 @@ Regresa el registro del empleado (sin contraseña) con, entre otros:
 - **Durante un mantenimiento del ERP este endpoint responde 503** (no está exceptuado). La app de login
   debe tolerarlo: si el usuario ya existe en Frappe, dejarlo entrar con los datos que ya tiene; si es su
   primera vez, pedirle que intente después.
-- Si el empleado no tiene `correo_corporativo`, se necesita una regla (pregunta abierta en el plan).
-  Frappe exige un correo único por usuario.
+- Si el empleado no tiene `correo_corporativo`, se usa `<numero_empleado>@empleados.grupocomunicalo.local`
+  (decisión 0011). El usuario se identifica por `numero_empleado`, no por el correo.
 - Acoplamiento: depende del módulo RH del ERP. Si algún día molesta, se pide en el ERP un endpoint propio
   de `auth` (anotado como opcional en `docs/pendientes-erp.md`).
 
@@ -81,8 +87,9 @@ Regresa el registro del empleado (sin contraseña) con, entre otros:
 - Permisos propuestos para este proyecto (aún **no existen** en el ERP, ver `docs/pendientes-erp.md`):
   - `CURSOS_VER`: puede entrar a Cursos (rol Frappe: estudiante, LMS Student).
   - `CURSOS_ADMINISTRAR`: crea y administra cursos (roles Frappe: Course Creator y Moderator).
-- La app de login sincroniza los roles de Frappe **en cada inicio de sesión** según los permisos que
-  regresa el ERP (si se le quitó el permiso en el ERP, lo pierde aquí al siguiente login).
+- Roles en dos etapas (decisión 0011): mientras estos permisos no existan, todo empleado activo que entra
+  es estudiante y los administradores se asignan a mano en Learning. Cuando existan, el ERP es la única
+  fuente y los roles se sincronizan en cada login (antes se migran los administradores manuales al ERP).
 
 ## 4. Servidores
 

@@ -31,8 +31,10 @@ Cada paso es obligatorio y en este orden. «Procede» autoriza el paso que se es
 2. **Analizar en solo lectura y proponer.** No editar nada hasta que la persona diga «procede».
 3. **Hacer el cambio** respetando este documento.
 4. **Probar en A** (no hay Docker local, decisión 0009): en el sitio de Learning, antes de abrirlo a usuarios
-   y con respaldo previo verificado. El login nunca toca la base del ERP. Si por urgencia no se prueba, el
-   commit lo dice: `Sin prueba: <motivo>`.
+   y con respaldo previo verificado. El login se prueba primero con respuestas simuladas del ERP y después
+   contra el ERP de producción **solo con las condiciones de la decisión 0010** (nunca contraseñas por chat,
+   en comandos, logs o archivos; nunca la base del ERP). Si por urgencia no se prueba, el commit lo dice:
+   `Sin prueba: <motivo>`.
 5. **Commit** en español, chico y enfocado. En el cuerpo, opcional, `Usuario: ...` (qué cambia para quien toma cursos).
 6. **Preguntar:** «¿Hago el commit? ¿A qué rama lo subo?». Sin respuesta no se sube nada.
 7. **Publicar en el servidor A solo con autorización explícita de la persona en ese momento.** No hay
@@ -84,6 +86,8 @@ Cada paso es obligatorio y en este orden. «Procede» autoriza el paso que se es
 - El material original de los cursos (videos, paquetes SCORM, PDF fuente) **no va a git**: carpeta
   `contenido/` (ignorada). En git solo va código, configuración y documentación.
 - No exponer puertos de MariaDB ni Redis fuera del contenedor.
+- **Nunca activar `developer_mode` en A:** con él, las trazas de error guardan variables locales y podrían
+  incluir la contraseña de un login fallido.
 
 ---
 

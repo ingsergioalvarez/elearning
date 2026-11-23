@@ -8,6 +8,9 @@ En A corre un Keycloak (`/opt/infra/keycloak`) de una arquitectura anterior. El 
 login (autentica con su propia tabla de empleados y JWT). Corre en modo `start-dev`, y su entrada en el
 proxy (`auth.grupocomunicalo.mx`) está rota.
 
+Nota 2026-11-20: Keycloak está **encendido** en A (~520 MB, `restart: always`) y, según el usuario, lo usa
+otra app del ERP. No cambia esta decisión: Learning no lo usa ni lo toca; solo comparten RAM y CPU de A.
+
 ## Decisión
 Learning no se conecta a Keycloak ni lo modifica. La identidad viene del ERP (decisión 0005).
 
