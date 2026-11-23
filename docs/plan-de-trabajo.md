@@ -1,7 +1,7 @@
 # Plan de trabajo
 
 Se actualiza al cerrar cada sesión: marcar casillas, mover preguntas resueltas a una decisión o al
-CHANGELOG. **Fase actual: 0 (sin iniciar).**
+CHANGELOG. **Fase actual: 0, en A (decisión 0009).** Learning instalado en A el 2026-11-20.
 
 ---
 
@@ -12,14 +12,14 @@ CHANGELOG. **Fase actual: 0 (sin iniciar).**
 | ~~P1~~ | **Resuelta 2026-11-19:** documentos se quedan en E-learning del ERP; Frappe solo para cursos (decisión 0001 aceptada) | Fase 0 |
 | ~~P2~~ | **Resuelta 2026-11-19:** no hay cursos todavía; se diseñarán desde cero. Las pruebas de la Fase 0 se hacen con un curso de muestra | Fase 0 |
 | ~~P3~~ | **Resuelta 2026-11-19:** Frappe v16 + Learning version-16 con etiquetas fijas (decisión 0008) | Fase 0 |
-| P12 | ¿Repositorio remoto (GitHub privado)? Define cómo llega el código a A: `git pull` con llave de despliegue de solo lectura, o `scp` del commit revisado mientras no haya remoto | Fase 1 |
+| P12 | **Parcial 2026-11-20:** remoto `github.com/ingsergioalvarez/elearning` (privado). Falta cómo baja a A: llave de despliegue de solo lectura (hoy se copia con `scp`) | Fase 1 |
 | P11 | ¿Con qué se hará el contenido interactivo de los cursos? Opciones: el editor de Frappe solo; una herramienta de autor que exporte SCORM (comercial o gratuita); o actividades HTML propias empaquetadas como SCORM. Se decide después de probar SCORM en la Fase 0 | Fase 4 |
-| P4 | ¿Disco, RAM y puertos libres en A? (revisión de solo lectura: `df -h`, `free -h`, `docker ps`) | Fase 1 |
-| P5 | ¿Nombre del subdominio? (propuesta: `cursos.grupocomunicalo.mx`) | Fase 1 |
-| P6 | ¿URL pública de la API del ERP que usará Frappe para validar el login? | Fase 2 |
-| P7 | ¿Qué hacer con empleados sin `correo_corporativo`? (propuesta: correo técnico `<numero>@empleados.grupocomunicalo.local` que nunca recibe correos) | Fase 2 |
+| ~~P4~~ | **Resuelta 2026-11-20:** 2 núcleos, 7.8 GB RAM + 4 GB swap nuevo, 96 GB disco (27 % usado). 8080 lo usa Keycloak; Learning usa 127.0.0.1:8090 | Fase 1 |
+| ~~P5~~ | **Resuelta 2026-11-20:** `elearning.grupocomunicalo.mx` (registro creado en Cloudflare) | Fase 1 |
+| ~~P6~~ | **Resuelta 2026-11-23:** `ERP_API_URL=https://grupocomunicalo.mx` (sin `/api`), verificada desde A (`docs/contexto-erp.md`) | Fase 2 |
+| ~~P7~~ | **Resuelta 2026-11-23:** correo técnico `<numero>@empleados.grupocomunicalo.local`; identidad por `numero_empleado` y renombrado si cambia el correo (decisión 0011) | Fase 2 |
 | ~~P8~~ | **Resuelta 2026-11-19:** respaldo local diario en A con 7 días de retención (decisión 0004 aceptada) | Fase 1 |
-| P9 | ¿Quién administra cursos (personas de RH, Calidad)? Para asignar `CURSOS_ADMINISTRAR` | Fase 4 |
+| P9 | ¿Quién administra cursos (personas de RH, Calidad)? Por ahora se asignan a mano en Learning (decisión 0011, etapa 1); faltan los nombres | Fase 4 |
 | P10 | ¿Videos dentro de Frappe o en YouTube no listado / Vimeo incrustado? (afecta el disco de A) | Fase 4 |
 
 ---
@@ -28,9 +28,12 @@ CHANGELOG. **Fase actual: 0 (sin iniciar).**
 
 - [x] Resolver P1 (2026-11-19).
 - [x] Resolver P2 y P3 (2026-11-19).
-- [ ] `infra/docker-compose.yml` local basado en `frappe_docker`, con Frappe v16, `lms` y `payments`
-      version-16 y etiquetas o commits exactos (decisión 0008). Anotar las versiones en el CHANGELOG.
-- [ ] Sitio local creado, idioma `es-MX`, zona horaria `America/Mexico_City`.
+- [x] `infra/docker-compose.yml` basado en `frappe_docker` v4.2.0, Frappe v16.60.2, lms v16.3.0, payments
+      v16.0.1 (2026-11-20). Se hace en A, no en local (decisión 0009).
+- [x] Sitio `elearning.grupocomunicalo.mx` creado en A con payments y lms (2026-11-20).
+- [ ] Entrada en nginx-proxy-manager con HTTPS y websockets → `learning-frontend-1:8080`.
+- [ ] Asistente inicial: idioma `es-MX` (o `es` si no existe), zona horaria `America/Mexico_City`.
+- [ ] Guardar `ADMIN_PASSWORD` y `DB_ROOT_PASSWORD` del `.env` de A en el gestor de contraseñas.
 - [ ] Armar **un curso de muestra** con todo lo que da Frappe: texto, video, PDF o presentación,
       cuestionario, tarea con entrega, certificado e insignia. Revisar el avance por persona.
 - [ ] Probar un **paquete SCORM de muestra**: que cargue, que marque completado y si guarda o no la
@@ -41,7 +44,7 @@ CHANGELOG. **Fase actual: 0 (sin iniciar).**
 ## Fase 1 — Servidor A (requiere autorización de la persona para cada paso que cambie A)
 
 - [x] Resolver P8 (2026-11-19).
-- [ ] Resolver P4, P5, P12.
+- [x] Resolver P4 y P5 (2026-11-20). - [ ] P12: llave de despliegue.
 - [ ] `.env` real creado en A (desde `infra/.env.example`) y copia en el gestor de contraseñas.
 - [ ] Confirmar en `CLAUDE.local.md` y en la skill `desplegar-learning` los comandos reales
       (carpeta, `-p learning`, servicio, sitio).
@@ -56,17 +59,26 @@ CHANGELOG. **Fase actual: 0 (sin iniciar).**
 
 ## Fase 2 — Misma contraseña que el ERP (app `apps/comunicalo_auth`)
 
-- [ ] Resolver P6, P7.
-- [ ] Elegir el mecanismo de Frappe para reemplazar el login **sin modificar el core** (ver `apps/README.md`).
-- [ ] Pantalla de login con «Número de empleado» y «Contraseña».
-- [ ] Validación contra `POST /api/auth/login`, perfil con `GET /api/rh/mi-perfil`.
-- [ ] Alta o actualización automática del usuario de Frappe (nombre, correo, empresa y área).
-- [ ] Roles de Frappe según `CURSOS_VER` / `CURSOS_ADMINISTRAR`, sincronizados en cada login.
-- [ ] Manejo de errores: inválido, bloqueado, inactivo, ERP caído, ERP en mantenimiento (perfil 503).
-- [ ] La contraseña no aparece en logs ni en errores (revisar).
-- [ ] Cuenta `Administrator` local de Frappe solo para emergencias, con contraseña guardada por Desarrollo.
-- [ ] Pruebas contra el **ERP local** con usuarios de prueba.
-- [ ] Pedir en el ERP los pendientes 1 de `docs/pendientes-erp.md`.
+- [x] Resolver P6 y P7 (2026-11-23; decisiones 0010 y 0011).
+- [x] Mecanismo sin modificar el core: página `www/login` propia (las apps instaladas después tienen
+      prioridad) + método `comunicalo_auth.login.entrar` + `LoginManager.login_as` (2026-11-23).
+- [x] Pantalla de login con «Número de empleado» y «Contraseña» (2026-11-23).
+- [x] Validación contra `POST {ERP_API_URL}/api/auth/login`, perfil con `GET {ERP_API_URL}/api/rh/mi-perfil` (2026-11-23).
+- [x] Usuario identificado por el campo `numero_empleado` (username = número, o `emp<número>` si tiene menos de
+      4 caracteres porque lms los reemplaza); correo corporativo o técnico `.local`; renombrado si cambia el correo.
+- [x] Sin correo de bienvenida; destinatarios `.local` se quitan de la cola (probado 2026-11-23).
+- [x] Roles etapa 1: asegura `LMS Student`; nunca quita roles de administrador (decisión 0011).
+- [x] Manejo de errores: inválido, bloqueado, inactivo, ERP caído, ERP en mantenimiento (perfil 503), timeout.
+- [x] La contraseña y el token no se guardan ni se registran (revisado; `developer_mode` apagado en A).
+- [x] Registro libre de usuarios desactivado (solo entran empleados validados por el ERP).
+- [x] Cuenta `Administrator` local de Frappe solo para emergencias, con contraseña guardada por Desarrollo (KeePassXC, 2026-11-20).
+- [x] Pruebas unitarias con respuestas simuladas del ERP: 27 pruebas, 200/400/401/403/405/500, perfil 503/404, timeout (2026-11-23).
+- [x] Prueba sin cuenta real: número inexistente → el ERP responde «Credenciales inválidas» y se muestra (2026-11-23).
+- [ ] Camino feliz validado por Sergio Alberto con su cuenta, en el navegador.
+- [ ] RH da de alta un **empleado de prueba** (fuera de nómina y reportes) para probar contraseña mala y
+      bloqueo; al terminar, RH lo inactiva.
+- [ ] Etapa 2 de roles (cuando el ERP tenga el pendiente 1): migrar administradores manuales al ERP y
+      después activar la sincronización.
 
 ## Fase 3 — Enlace desde la intranet (se hace en el repo del ERP)
 
